@@ -1,4 +1,4 @@
-import { DB, getDbClient, getHubClient, allActiveDbMessagesOfTypeForFid } from "../index"; // If you want to use this as a standalone app, replace this import with "@farcaster/shuttle"
+import { DB, getDbClient, getHubClient, allDbMessagesOfTypeForFid } from "../index"; // If you want to use this as a standalone app, replace this import with "@farcaster/shuttle"
 import {
   AdminRpcClient,
   getAdminRpcClient,
@@ -11,9 +11,10 @@ import {
   OnChainEventRequest,
   OnChainEventType,
   StoreType,
+  UserDataType,
 } from "@farcaster/hub-nodejs";
 import { log } from "../example-app/log";
-import { Command } from "@commander-js/extra-typings";
+import { Argument, Command } from "@commander-js/extra-typings";
 import { readFileSync } from "fs";
 import {
   BACKFILL_FIDS,
@@ -230,7 +231,7 @@ export class Migration {
     return ok(undefined);
   }
 
-  async ingestMessagesFromDb(fids: number[]) {
+  async ingestMessagesFromDb(fids: number[], shuffleMessages = false) {
     for (const fid of fids) {
       let numMessages = 0;
       let numErrorsOnHub = 0;
@@ -248,69 +249,79 @@ export class Migration {
         MessageType.VERIFICATION_REMOVE,
         MessageType.USER_DATA_ADD,
       ];
-      for (const type of messageTypes) {
-        let numMessagesByType = 0;
-        let pageNumber = 0;
-        const pageSize = 100;
-        while (true) {
-          const messages = await allActiveDbMessagesOfTypeForFid(
-            this.backendDb,
-            fid,
-            type,
-            undefined,
-            undefined,
-            pageSize,
-            pageSize * pageNumber,
-          );
-          if (messages.isErr()) {
-            throw messages.error;
-          }
-
-          if (messages.value.length === 0) {
-            break;
-          }
-
-          for (const dbMessage of messages.value) {
-            const message = Message.decode(dbMessage.raw);
-
-            if (!message.data) {
-              return;
-            }
-
-            const newMessage = Message.create(message);
-            newMessage.dataBytes = MessageData.encode(message.data).finish();
-            newMessage.data = undefined;
-
-            const snapchainResult = await this.submitWithRetry(3, async () => {
-              return this.snapchainClient.submitMessage(newMessage);
-            });
-            const hubResult = await this.hubClient.submitMessage(newMessage);
-
-            if (snapchainResult.isErr()) {
-              log.info(
-                `Unable to submit message to snapchain ${snapchainResult.error.message} ${snapchainResult.error.stack}`,
-              );
-              if (this.shouldRetry(snapchainResult.error)) {
-                log.info("Skipping hub submit to avoid mismatch");
-                numSkipped += 1;
-                continue;
-              }
-              numErrorsOnSnapchain += 1;
-            }
-
-            if (hubResult.isErr()) {
-              log.info(`Unable to submit message to hub ${hubResult.error.message} ${hubResult.error.stack}`);
-              numErrorsOnHub += 1;
-            }
-
-            numMessages += 1;
-            numMessagesByType += 1;
-          }
-
-          pageNumber += 1;
+      const numMessagesByType = new Map();
+      let pageNumber = 0;
+      const pageSize = 100;
+      while (true) {
+        const messages = await allDbMessagesOfTypeForFid(
+          this.backendDb,
+          fid,
+          messageTypes,
+          undefined,
+          undefined,
+          pageSize,
+          pageSize * pageNumber,
+          // true, include pruned
+          // true, include deleted
+          // true, include revoked
+        );
+        if (messages.isErr()) {
+          throw messages.error;
         }
 
-        log.info(`Submitted ${numMessagesByType} messages for fid ${fid} for type ${MessageType[type]}`);
+        if (messages.value.length === 0) {
+          break;
+        }
+
+        const shuffledMessages = shuffleMessages
+          ? messages.value.sort(() => {
+              return Math.random() - 0.5;
+            })
+          : messages.value;
+
+        for (const dbMessage of shuffledMessages) {
+          const message = Message.decode(dbMessage.raw);
+
+          if (!message.data) {
+            continue;
+          }
+
+          const newMessage = Message.create(message);
+          newMessage.dataBytes = MessageData.encode(message.data).finish();
+          newMessage.data = undefined;
+
+          const snapchainResult = await this.submitWithRetry(3, async () => {
+            return this.snapchainClient.submitMessage(newMessage);
+          });
+          const hubResult = await this.hubClient.submitMessage(newMessage);
+
+          if (snapchainResult.isErr()) {
+            log.info(
+              `Unable to submit message to snapchain ${snapchainResult.error.message} ${snapchainResult.error.stack}`,
+            );
+            if (this.shouldRetry(snapchainResult.error)) {
+              log.info("Skipping hub submit to avoid mismatch");
+              numSkipped += 1;
+              continue;
+            }
+            numErrorsOnSnapchain += 1;
+          }
+
+          if (hubResult.isErr()) {
+            log.info(`Unable to submit message to hub ${hubResult.error.message} ${hubResult.error.stack}`);
+            numErrorsOnHub += 1;
+          }
+
+          numMessages += 1;
+          const countForType = numMessagesByType.get(message.data.type) ?? 0;
+          numMessagesByType.set(message.data.type, countForType + 1);
+        }
+
+        pageNumber += 1;
+      }
+
+      for (const [type, count] of numMessagesByType.entries()) {
+        log.info(`Submitted ${count} messages for fid ${fid} for type ${MessageType[type]}`);
       }
 
       const result = await this.hubAdminClient.pruneMessages({ fid });

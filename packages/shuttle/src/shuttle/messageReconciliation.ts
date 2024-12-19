@@ -134,7 +134,7 @@ export class MessageReconciliation {
     }
 
     // Next, reconcile messages that are in the database but not in the hub
-    const dbMessages = await allActiveDbMessagesOfTypeForFid(this.db, fid, type, startTimestamp, stopTimestamp);
+    const dbMessages = await allDbMessagesOfTypeForFid(this.db, fid, [type], startTimestamp, stopTimestamp);
     if (dbMessages.isErr()) {
       this.log.error({ startTimestamp, stopTimestamp }, "Invalid time range provided to reconciliation");
       return;
@@ -401,17 +401,18 @@ export class MessageReconciliation {
   }
 }
 
-export async function allActiveDbMessagesOfTypeForFid(
+export async function allDbMessagesOfTypeForFid(
   db: DB,
   fid: number,
-  type: MessageType,
+  types: MessageType[],
   startTimestamp?: number,
   stopTimestamp?: number,
   limit?: number,
   offset?: number,
+  includePruned = false,
+  includeDeleted = false,
+  includeRevoked = false,
 ) {
-  const typeSet: MessageType[] = [type];
-
   let startDate;
   if (startTimestamp) {
     const startUnixTimestampResult = fromFarcasterTime(startTimestamp);
@@ -444,11 +445,11 @@ export async function allActiveDbMessagesOfTypeForFid(
       "messages.signer",
     ])
     .where("messages.fid", "=", fid)
-    .where("messages.type", "in", typeSet)
-    .where("messages.prunedAt", "is", null)
-    .where("messages.revokedAt", "is", null)
-    .where("messages.deletedAt", "is", null);
-  const queryWithStartTime = startDate ? query.where("messages.timestamp", ">=", startDate) : query;
+    .where("messages.type", "in", types);
+  const queryWithPruned = includePruned ? query : query.where("messages.prunedAt", "is", null);
+  const queryWithRevoked = includeRevoked ? queryWithPruned : queryWithPruned.where("messages.revokedAt", "is", null);
+  const queryWithDeleted = includeDeleted ? queryWithRevoked : queryWithRevoked.where("messages.deletedAt", "is", null);
+  const queryWithStartTime = startDate ? queryWithDeleted.where("messages.timestamp", ">=", startDate) : query;
   const queryWithStopTime = stopDate
     ? queryWithStartTime.where("messages.timestamp", "<=", stopDate)
     : queryWithStartTime;
