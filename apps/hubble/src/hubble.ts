@@ -760,7 +760,7 @@ export class Hub implements HubInterface {
     await this.engine.start();
 
     // Start the sync engine
-    // await this.syncEngine.start(this.options.rebuildSyncTrie ?? false);
+    await this.syncEngine.start(this.options.rebuildSyncTrie ?? false);
 
     // Start the RPC server
     await this.rpcServer.start(this.options.rpcServerHost, this.options.rpcPort ?? 0);
