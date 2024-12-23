@@ -85,6 +85,7 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
   private _publicClient: PublicClient<transport, chain>;
 
   private _firstBlock: number;
+  private _stopBlock?: number;
   private _chunkSize: number;
   private _chainId: number;
   private _rentExpiry: number;
@@ -151,10 +152,12 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
     chainId: number,
     resyncEvents: boolean,
     expiryOverride?: number,
+    stopBlock?: number,
   ) {
     this._hub = hub;
     this._publicClient = publicClient;
     this._firstBlock = firstBlock;
+    this._stopBlock = stopBlock;
     this._chunkSize = chunkSize;
     this._chainId = chainId;
     this._resyncEvents = resyncEvents;
@@ -198,6 +201,7 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
     chainId: number,
     resyncEvents: boolean,
     expiryOverride?: number,
+    stopBlock?: number,
   ): L2EventsProvider<chain> {
     const l2RpcUrls = l2RpcUrl.split(",");
     const transports = l2RpcUrls.map((url) =>
@@ -232,6 +236,7 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
       chainId,
       resyncEvents,
       expiryOverride,
+      stopBlock,
     );
 
     return provider;
@@ -245,9 +250,9 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
     // Connect to L2 RPC
 
     // Start the contract watchers first, so we cache events while we sync historical events
-    this._watchStorageContractEvents?.start();
-    this._watchIdRegistryV2ContractEvents?.start();
-    this._watchKeyRegistryV2ContractEvents?.start();
+    // this._watchStorageContractEvents?.start();
+    // this._watchIdRegistryV2ContractEvents?.start();
+    // this._watchKeyRegistryV2ContractEvents?.start();
 
     const syncHistoryResult = await this.connectAndSyncHistoricalEvents();
     if (syncHistoryResult.isErr()) {
@@ -603,23 +608,6 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
 
   /** Connect to OP RPC and sync events. Returns the highest block that was synced */
   private async connectAndSyncHistoricalEvents(): HubAsyncResult<number> {
-    const latestBlockResult = await ResultAsync.fromPromise(getBlockNumber(this._publicClient), (err) => err);
-    if (latestBlockResult.isErr()) {
-      diagnosticReporter().reportError(latestBlockResult.error as Error);
-      const msg = "failed to connect to optimism node. Check your eth RPC URL (e.g. --l2-rpc-url)";
-      log.error({ err: latestBlockResult.error }, msg);
-      return err(new HubError("unavailable.network_failure", msg));
-    }
-    const latestBlock = Number(latestBlockResult.value);
-
-    if (!latestBlock) {
-      const msg = "failed to get the latest block from the RPC provider";
-      log.error(msg);
-      return err(new HubError("unavailable.network_failure", msg));
-    }
-
-    log.info({ latestBlock: latestBlock }, "connected to optimism node");
-
     // Find how how much we need to sync
     let lastSyncedBlock = this._firstBlock;
 
@@ -635,6 +623,28 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
     }
 
     log.info({ lastSyncedBlock }, "last synced block");
+    let latestBlock = lastSyncedBlock;
+    if (this._stopBlock) {
+      latestBlock = this._stopBlock;
+    } else {
+      const latestBlockResult = await ResultAsync.fromPromise(getBlockNumber(this._publicClient), (err) => err);
+      if (latestBlockResult.isErr()) {
+        diagnosticReporter().reportError(latestBlockResult.error as Error);
+        const msg = "failed to connect to optimism node. Check your eth RPC URL (e.g. --l2-rpc-url)";
+        log.error({ err: latestBlockResult.error }, msg);
+        return err(new HubError("unavailable.network_failure", msg));
+      }
+      latestBlock = Number(latestBlockResult.value);
+
+      if (!latestBlock) {
+        const msg = "failed to get the latest block from the RPC provider";
+        log.error(msg);
+        return err(new HubError("unavailable.network_failure", msg));
+      }
+
+      log.info({ latestBlock: latestBlock }, "connected to optimism node");
+    }
+
     const toBlock = latestBlock;
 
     if (lastSyncedBlock < toBlock) {

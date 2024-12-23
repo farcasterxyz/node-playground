@@ -347,7 +347,7 @@ function selectFids() {
 }
 
 if (import.meta.url.endsWith(url.pathToFileURL(process.argv[1] || "").toString())) {
-  async function backfillOnChainEvents() {
+  async function backfill() {
     const migration = await Migration.create(
       POSTGRES_SCHEMA,
       ONCHAIN_EVENTS_HUB_HOST,
@@ -355,37 +355,18 @@ if (import.meta.url.endsWith(url.pathToFileURL(process.argv[1] || "").toString()
       HUB_HOST,
       HUB_ADMIN_HOST,
     );
+
     const fids = selectFids();
     await migration.ingestAllOnchainEvents(fids);
+    log.info("Done migrating onchain events");
     await migration.ingestUsernameProofs(fids);
-    return;
-  }
-
-  async function backfillMessages() {
-    const migration = await Migration.create(
-      POSTGRES_SCHEMA,
-      ONCHAIN_EVENTS_HUB_HOST,
-      SNAPCHAIN_HOST,
-      HUB_HOST,
-      HUB_ADMIN_HOST,
-    );
-
-    const fids = selectFids();
+    log.info("Done migrating usernme proofs");
+    // Sleep 30s
+    await sleep(30_000);
     await migration.ingestMessagesFromDb(fids);
-
-    return;
-  }
-
-  async function compareMessageCounts() {
-    const migration = await Migration.create(
-      POSTGRES_SCHEMA,
-      ONCHAIN_EVENTS_HUB_HOST,
-      SNAPCHAIN_HOST,
-      HUB_HOST,
-      HUB_ADMIN_HOST,
-    );
-
-    const fids = selectFids();
+    log.info("Done migrating messages");
+    // Sleep 2 minutes
+    await sleep(120_000);
     for (const fid of fids) {
       const compareResult = await migration.compareMessageCounts(fid);
       if (compareResult.isErr()) {
@@ -401,15 +382,7 @@ if (import.meta.url.endsWith(url.pathToFileURL(process.argv[1] || "").toString()
     .description("Synchronizes a Farcaster Hub with a Postgres database")
     .version(JSON.parse(readFileSync("./package.json").toString()).version);
 
-  program.command("backfill-messages").description("Queue up backfill for the worker").action(backfillMessages);
-  program
-    .command("backfill-onchain-events")
-    .description("Queue up backfill for the worker")
-    .action(backfillOnChainEvents);
-  program
-    .command("compare-message-counts")
-    .description("Cross-check message counts between hub and snapchain")
-    .action(compareMessageCounts);
+  program.command("backfill").description("Queue up backfill for the worker").action(backfill);
 
   program.parse(process.argv);
 }

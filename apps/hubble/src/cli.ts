@@ -106,6 +106,7 @@ app
     "The block number to begin syncing events from L2 Farcaster contracts",
     parseNumber,
   )
+  .option("--l2-stop-block <number>", "The block number to stop syncing L2 events at", parseNumber)
   .option(
     "--l2-chunk-size <number>",
     "The number of events to fetch from L2 Farcaster contracts at a time",
@@ -519,6 +520,7 @@ app
       l2KeyRegistryAddress: cliOptions.l2KeyRegistryAddress ?? hubConfig.l2KeyRegistryAddress,
       l2StorageRegistryAddress: cliOptions.l2StorageRegistryAddress ?? hubConfig.l2StorageRegistryAddress,
       l2FirstBlock: cliOptions.l2FirstBlock ?? hubConfig.l2FirstBlock,
+      l2StopBlock: cliOptions.l2StopBlock,
       l2ChunkSize: cliOptions.l2ChunkSize ?? hubConfig.l2ChunkSize,
       l2ChainId: cliOptions.l2ChainId ?? hubConfig.l2ChainId,
       l2ResyncEvents: cliOptions.l2ResyncEvents ?? hubConfig.l2ResyncEvents ?? false,

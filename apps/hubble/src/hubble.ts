@@ -253,6 +253,8 @@ export interface HubOptions {
   /** Block number to begin syncing events from for L2  */
   l2FirstBlock?: number;
 
+  l2StopBlock?: number;
+
   /** Number of blocks to batch when syncing historical events for L2 */
   l2ChunkSize?: number;
 
@@ -431,6 +433,7 @@ export class Hub implements HubInterface {
         options.l2ChainId ?? OptimismConstants.ChainId,
         options.l2ResyncEvents ?? false,
         options.l2RentExpiryOverride,
+        options.l2StopBlock,
       );
     } else {
       log.warn("No L2 RPC URL provided, unable to sync L2 contract events");
@@ -799,7 +802,7 @@ export class Hub implements HubInterface {
       await this.adminServer.start(this.options.adminServerHost ?? "127.0.0.1");
     }
 
-    // await this.l2RegistryProvider.start();
+    await this.l2RegistryProvider.start();
     // await this.fNameRegistryEventsProvider.start();
 
     const peerId = this.options.peerId

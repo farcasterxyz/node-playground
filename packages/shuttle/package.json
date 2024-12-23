@@ -31,9 +31,7 @@
   "scripts": {
     "build": "tsup --config tsup.config.ts",
     "start": "tsx src/example-app/app.ts",
-    "migrate:onchain-events": "tsx src/shuttle/migration.ts backfill-onchain-events",
-    "migrate:messages": "tsx src/shuttle/migration.ts backfill-messages",
-    "migrate:validate": "tsx src/shuttle/migration.ts compare-message-counts",
+    "migrate:backfill": "tsx src/shuttle/migration.ts backfill",
     "lint": "biome format src/ --write && biome check src/ --apply",
     "lint:ci": "biome ci src/",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --forceExit",
