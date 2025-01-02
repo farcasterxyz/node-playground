@@ -179,6 +179,7 @@ app
   .option("--profile-sync", "Profile a full hub sync and exit. (default: disabled)")
   .option("--rebuild-sync-trie", "Rebuild the sync trie before starting (default: disabled)")
   .option("--resync-name-events", "Resync events from the Fname server before starting (default: disabled)")
+  .option("--stop-fname-transfer-id <number>", "Fname transfer id to stop at", parseNumber)
   .option(
     "--chunk-size <number>",
     `The number of blocks to batch when syncing historical events from Farcaster contracts. (default: ${DEFAULT_CHUNK_SIZE})`,
