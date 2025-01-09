@@ -179,7 +179,11 @@ export type Logger = pino.Logger;
 
 export const messageTypeToName = (type?: MessageType) => {
   if (!type) return "";
-  return (MessageType[type] as string).replace("MESSAGE_TYPE_", "");
+  if (Object.values(MessageType).includes(type)) {
+    return (MessageType[type] as string).replace("MESSAGE_TYPE_", "");
+  } else {
+    return `RAW_MESSAGE_TYPE: ${type}`;
+  }
 };
 
 export const messageToLog = (message: Message) => {
