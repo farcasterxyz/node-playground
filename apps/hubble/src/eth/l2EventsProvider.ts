@@ -246,7 +246,7 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
     return this._lastBlockNumber;
   }
 
-  public async start(): HubAsyncResult<void> {
+  public async start(): HubAsyncResult<undefined> {
     // Connect to L2 RPC
 
     // Start the contract watchers first, so we cache events while we sync historical events
@@ -261,7 +261,8 @@ export class L2EventsProvider<chain extends Chain = Chain, transport extends Tra
     } else if (!this._isHistoricalSyncDone) {
       throw new HubError("unavailable", "Historical sync failed to complete");
     } else {
-      return ok(this._watchBlockNumber?.start());
+      return ok(undefined);
+      // return ok(this._watchBlockNumber?.start());
     }
   }
 

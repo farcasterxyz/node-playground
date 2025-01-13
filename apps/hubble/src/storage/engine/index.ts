@@ -323,15 +323,15 @@ class Engine extends TypedEmitter<EngineEvents> {
         if (result.isErr()) {
           mergeResults.set(i, result);
           // Try to request on chain event if it's missing
-          if (
-            result.error.errCode === "bad_request.no_storage" ||
-            "bad_request.unknown_signer" ||
-            "bad_request.missing_fid"
-          ) {
-            const fid = message.data?.fid ?? 0;
-            // Don't await because we don't want to block hubs from processing new messages.
-            this._l2EventsProvider?.retryEventsForFid(fid);
-          }
+          // if (
+          //   result.error.errCode === "bad_request.no_storage" ||
+          //   "bad_request.unknown_signer" ||
+          //   "bad_request.missing_fid"
+          // ) {
+          // const fid = message.data?.fid ?? 0;
+          // Don't await because we don't want to block hubs from processing new messages.
+          // this._l2EventsProvider?.retryEventsForFid(fid);
+          // }
         } else {
           validatedMessages.push(result.value);
         }
