@@ -1038,17 +1038,17 @@ class Engine extends TypedEmitter<EngineEvents> {
 
       const result = await ResultAsync.fromPromise(this._userDataStore.getUserNameProof(name), (e) => e as HubError);
 
-      if (result.isErr() && result.error.errCode === "not_found" && retries > 0 && this._fNameRegistryEventsProvider) {
-        const rateLimitResult = await ResultAsync.fromPromise(
-          this._fNameRetryRateLimiter.consume(0),
-          () => new HubError("unavailable", "Too many requests to fName server"),
-        );
-        if (rateLimitResult.isErr()) {
-          return err(rateLimitResult.error);
-        }
-        await this._fNameRegistryEventsProvider.retryTransferByName(name);
-        return this.getUserNameProof(name, retries - 1);
-      }
+      // if (result.isErr() && result.error.errCode === "not_found" && retries > 0 && this._fNameRegistryEventsProvider) {
+      //   const rateLimitResult = await ResultAsync.fromPromise(
+      //     this._fNameRetryRateLimiter.consume(0),
+      //     () => new HubError("unavailable", "Too many requests to fName server"),
+      //   );
+      //   if (rateLimitResult.isErr()) {
+      //     return err(rateLimitResult.error);
+      //   }
+      // await this._fNameRegistryEventsProvider.retryTransferByName(name);
+      //   return this.getUserNameProof(name, retries - 1);
+      // }
 
       return result;
     }
