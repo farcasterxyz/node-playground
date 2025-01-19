@@ -14,7 +14,7 @@ async function profile(fid = 2) {
     }
   } catch (e) {
     // handle errors
-    console.error("Error getting userdata message: ", e.response.data);
+    console.error("Error getting userdata message: ", e.response?.data || e.message);
   }
 }
 
