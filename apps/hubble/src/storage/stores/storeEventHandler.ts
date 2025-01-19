@@ -227,6 +227,15 @@ class StoreEventHandler extends TypedEmitter<StoreEvents> {
     return await this._storageCache.getMessageCount(fid, set, forceFetch);
   }
 
+  async clearCachedMessageCount(fid: number, store: StoreType): HubAsyncResult<void> {
+    const set = STORE_TO_SET[store];
+    if (!set) {
+      return err(new HubError("bad_request.invalid_param", `invalid store type ${store}`));
+    }
+    await this._storageCache.clearMessageCount(fid, set);
+    return ok(undefined);
+  }
+
   async getMaxMessageCount(fid: number, set: UserMessagePostfix): HubAsyncResult<number> {
     const slot = await this.getCurrentStorageSlotForFid(fid);
 

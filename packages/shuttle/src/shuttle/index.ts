@@ -9,6 +9,7 @@ export * from "./hubEventProcessor";
 export * from "./messageProcessor";
 export * from "./messageReconciliation";
 export * from "./eventStream";
+export * from "./migration";
 
 export type StoreMessageOperation = "merge" | "delete" | "revoke" | "prune";
 export type MessageState = "created" | "deleted";

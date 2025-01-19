@@ -254,6 +254,8 @@ export interface HubOptions {
   /** Block number to begin syncing events from for L2  */
   l2FirstBlock?: number;
 
+  l2StopBlock?: number;
+
   /** Number of blocks to batch when syncing historical events for L2 */
   l2ChunkSize?: number;
 
@@ -271,6 +273,9 @@ export interface HubOptions {
 
   /** Resync fname events */
   resyncNameEvents?: boolean;
+
+  /** Id of last fname transfer to ingest */
+  stopFnameTransferId?: number;
 
   /** Name of the RocksDB instance */
   rocksDBName?: string;
@@ -432,6 +437,7 @@ export class Hub implements HubInterface {
         options.l2ChainId ?? OptimismConstants.ChainId,
         options.l2ResyncEvents ?? false,
         options.l2RentExpiryOverride,
+        options.l2StopBlock,
       );
     } else {
       log.warn("No L2 RPC URL provided, unable to sync L2 contract events");
@@ -443,6 +449,7 @@ export class Hub implements HubInterface {
         new FNameRegistryClient(options.fnameServerUrl),
         this,
         options.resyncNameEvents ?? false,
+        options.stopFnameTransferId,
       );
     } else {
       log.warn("No FName Registry URL provided, unable to sync fname events");
@@ -808,34 +815,34 @@ export class Hub implements HubInterface {
       : undefined;
 
     // Start the Gossip node
-    await this.gossipNode.start(this.bootstrapAddrs(), {
-      peerId,
-      ipMultiAddr: this.options.ipMultiAddr,
-      announceIp: this.options.announceIp,
-      gossipPort: this.options.gossipPort,
-      allowedPeerIdStrs: this.allowedPeerIds,
-      deniedPeerIdStrs: this.deniedPeerIds,
-      directPeers: this.options.directPeers,
-      allowlistedImmunePeers: this.options.allowlistedImmunePeers,
-      applicationScoreCap: this.options.applicationScoreCap,
-      strictNoSign: this.strictNoSign,
-      connectToDbPeers: this.options.connectToDbPeers,
-      statsdParams: this.options.statsdParams,
-    });
+    // await this.gossipNode.start(this.bootstrapAddrs(), {
+    //   peerId,
+    //   ipMultiAddr: this.options.ipMultiAddr,
+    //   announceIp: this.options.announceIp,
+    //   gossipPort: this.options.gossipPort,
+    //   allowedPeerIdStrs: this.allowedPeerIds,
+    //   deniedPeerIdStrs: this.deniedPeerIds,
+    //   directPeers: this.options.directPeers,
+    //   allowlistedImmunePeers: this.options.allowlistedImmunePeers,
+    //   applicationScoreCap: this.options.applicationScoreCap,
+    //   strictNoSign: this.strictNoSign,
+    //   connectToDbPeers: this.options.connectToDbPeers,
+    //   statsdParams: this.options.statsdParams,
+    // });
 
     await this.registerEventHandlers();
 
     // Start cron tasks
     this.pruneMessagesJobScheduler.start(this.options.pruneMessagesJobCron);
-    this.periodSyncJobScheduler.start();
+    // this.periodSyncJobScheduler.start();
     this.pruneEventsJobScheduler.start(this.options.pruneEventsJobCron);
     this.checkFarcasterVersionJobScheduler.start();
-    this.validateOrRevokeMessagesJobScheduler.start();
+    // this.validateOrRevokeMessagesJobScheduler.start();
 
     const randomMinute = Math.floor(Math.random() * 15);
-    this.gossipContactInfoJobScheduler.start(`${randomMinute}-59/15 * * * *`); // Weird syntax but required by cron, random minute every 15 minutes
+    // this.gossipContactInfoJobScheduler.start(`${randomMinute}-59/15 * * * *`); // Weird syntax but required by cron, random minute every 15 minutes
     this.checkIncomingPortsJobScheduler.start();
-    this.measureSyncHealthJobScheduler.start();
+    // this.measureSyncHealthJobScheduler.start();
 
     // Mainnet only jobs
     if (this.options.network === FarcasterNetwork.MAINNET) {

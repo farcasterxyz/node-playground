@@ -933,18 +933,18 @@ export default class Server {
       getOnChainEvents: async (call, callback) => this.getOnChainEventsRPC(call, callback),
       submitMessage: async (call, callback) => {
         // Identify peer that is calling, if available. This is used for rate limiting.
-        const peer = Result.fromThrowable(
-          () => call.getPeer(),
-          (e) => e,
-        )().unwrapOr("unavailable");
+        // const peer = Result.fromThrowable(
+        //   () => call.getPeer(),
+        //   (e) => e,
+        // )().unwrapOr("unavailable");
         statsd().increment("rpc.open_request_count", { method: "submitMessage" });
 
-        const rateLimitResult = await rateLimitByIp(peer, this.submitMessageRateLimiter);
-        if (rateLimitResult.isErr()) {
-          logger.warn({ peer }, "submitMessage rate limited");
-          callback(toServiceError(new HubError("unavailable", "API rate limit exceeded")));
-          return;
-        }
+        // const rateLimitResult = await rateLimitByIp(peer, this.submitMessageRateLimiter);
+        // if (rateLimitResult.isErr()) {
+        //   logger.warn({ peer }, "submitMessage rate limited");
+        //   callback(toServiceError(new HubError("unavailable", "API rate limit exceeded")));
+        //   return;
+        // }
 
         // Authentication
         const authResult = authenticateUser(call.metadata, this.rpcUsers);
@@ -972,19 +972,19 @@ export default class Server {
       },
       submitBulkMessages: async (call, callback) => {
         // Identify peer that is calling, if available. This is used for rate limiting.
-        const peer = Result.fromThrowable(
-          () => call.getPeer(),
-          (e) => e,
-        )().unwrapOr("unavailable");
+        // const peer = Result.fromThrowable(
+        //   () => call.getPeer(),
+        //   (e) => e,
+        // )().unwrapOr("unavailable");
         statsd().increment("rpc.open_request_count", { method: "submitBulkMessages" });
 
         // Check for rate limits
-        const rateLimitResult = await rateLimitByIp(peer, this.submitMessageRateLimiter);
-        if (rateLimitResult.isErr()) {
-          logger.warn({ peer }, "submitBulkMessages rate limited");
-          callback(toServiceError(new HubError("unavailable", "API rate limit exceeded")));
-          return;
-        }
+        // const rateLimitResult = await rateLimitByIp(peer, this.submitMessageRateLimiter);
+        // if (rateLimitResult.isErr()) {
+        //   logger.warn({ peer }, "submitBulkMessages rate limited");
+        //   callback(toServiceError(new HubError("unavailable", "API rate limit exceeded")));
+        //   return;
+        // }
 
         // Authentication
         const authResult = authenticateUser(call.metadata, this.rpcUsers);

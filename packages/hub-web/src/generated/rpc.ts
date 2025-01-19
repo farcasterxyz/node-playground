@@ -24,6 +24,8 @@ import {
   MessagesResponse,
   OnChainEventRequest,
   OnChainEventResponse,
+  PruneMessagesRequest,
+  PruneMessagesResponse,
   ReactionRequest,
   ReactionsByFidRequest,
   ReactionsByTargetRequest,
@@ -1526,7 +1528,9 @@ export const HubServiceGetSyncSnapshotByPrefixDesc: UnaryMethodDefinitionish = {
 export interface AdminService {
   rebuildSyncTrie(request: DeepPartial<Empty>, metadata?: grpcWeb.grpc.Metadata): Promise<Empty>;
   deleteAllMessagesFromDb(request: DeepPartial<Empty>, metadata?: grpcWeb.grpc.Metadata): Promise<Empty>;
+  pruneMessages(request: DeepPartial<PruneMessagesRequest>, metadata?: grpcWeb.grpc.Metadata): Promise<PruneMessagesResponse>;
   submitOnChainEvent(request: DeepPartial<OnChainEvent>, metadata?: grpcWeb.grpc.Metadata): Promise<OnChainEvent>;
+  submitUserNameProof(request: DeepPartial<UserNameProof>, metadata?: grpcWeb.grpc.Metadata): Promise<UserNameProof>;
 }
 
 export class AdminServiceClientImpl implements AdminService {
@@ -1536,7 +1540,9 @@ export class AdminServiceClientImpl implements AdminService {
     this.rpc = rpc;
     this.rebuildSyncTrie = this.rebuildSyncTrie.bind(this);
     this.deleteAllMessagesFromDb = this.deleteAllMessagesFromDb.bind(this);
+    this.pruneMessages = this.pruneMessages.bind(this);
     this.submitOnChainEvent = this.submitOnChainEvent.bind(this);
+    this.submitUserNameProof = this.submitUserNameProof.bind(this);
   }
 
   rebuildSyncTrie(request: DeepPartial<Empty>, metadata?: grpcWeb.grpc.Metadata): Promise<Empty> {
@@ -1547,8 +1553,16 @@ export class AdminServiceClientImpl implements AdminService {
     return this.rpc.unary(AdminServiceDeleteAllMessagesFromDbDesc, Empty.fromPartial(request), metadata);
   }
 
+  pruneMessages(request: DeepPartial<PruneMessagesRequest>, metadata?: grpcWeb.grpc.Metadata): Promise<PruneMessagesResponse> {
+    return this.rpc.unary(AdminServicePruneMessagesDesc, PruneMessagesRequest.fromPartial(request), metadata);
+  }
+
   submitOnChainEvent(request: DeepPartial<OnChainEvent>, metadata?: grpcWeb.grpc.Metadata): Promise<OnChainEvent> {
     return this.rpc.unary(AdminServiceSubmitOnChainEventDesc, OnChainEvent.fromPartial(request), metadata);
+  }
+
+  submitUserNameProof(request: DeepPartial<UserNameProof>, metadata?: grpcWeb.grpc.Metadata): Promise<UserNameProof> {
+    return this.rpc.unary(AdminServiceSubmitUserNameProofDesc, UserNameProof.fromPartial(request), metadata);
   }
 }
 
@@ -1600,6 +1614,29 @@ export const AdminServiceDeleteAllMessagesFromDbDesc: UnaryMethodDefinitionish =
   } as any,
 };
 
+export const AdminServicePruneMessagesDesc: UnaryMethodDefinitionish = {
+  methodName: "PruneMessages",
+  service: AdminServiceDesc,
+  requestStream: false,
+  responseStream: false,
+  requestType: {
+    serializeBinary() {
+      return PruneMessagesRequest.encode(this).finish();
+    },
+  } as any,
+  responseType: {
+    deserializeBinary(data: Uint8Array) {
+      const value = PruneMessagesResponse.decode(data);
+      return {
+        ...value,
+        toObject() {
+          return value;
+        },
+      };
+    },
+  } as any,
+};
+
 export const AdminServiceSubmitOnChainEventDesc: UnaryMethodDefinitionish = {
   methodName: "SubmitOnChainEvent",
   service: AdminServiceDesc,
@@ -1613,6 +1650,29 @@ export const AdminServiceSubmitOnChainEventDesc: UnaryMethodDefinitionish = {
   responseType: {
     deserializeBinary(data: Uint8Array) {
       const value = OnChainEvent.decode(data);
+      return {
+        ...value,
+        toObject() {
+          return value;
+        },
+      };
+    },
+  } as any,
+};
+
+export const AdminServiceSubmitUserNameProofDesc: UnaryMethodDefinitionish = {
+  methodName: "SubmitUserNameProof",
+  service: AdminServiceDesc,
+  requestStream: false,
+  responseStream: false,
+  requestType: {
+    serializeBinary() {
+      return UserNameProof.encode(this).finish();
+    },
+  } as any,
+  responseType: {
+    deserializeBinary(data: Uint8Array) {
+      const value = UserNameProof.decode(data);
       return {
         ...value,
         toObject() {

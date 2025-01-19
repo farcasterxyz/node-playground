@@ -152,7 +152,7 @@ export default class AdminServer {
       submitOnChainEvent: async (call, callback) => {
         const authResult = await authenticateUser(call.metadata, this.rpcUsers);
         if (authResult.isErr()) {
-          logger.warn({ errMsg: authResult.error.message }, "submitOnChainEvent failed");
+          log.warn({ errMsg: authResult.error.message }, "submitOnChainEvent failed");
           callback(
             toServiceError(new HubError("unauthenticated", `gRPC authentication failed: ${authResult.error.message}`)),
           );
@@ -161,9 +161,54 @@ export default class AdminServer {
 
         const onChainEvent = call.request;
         const result = await this.hub?.submitOnChainEvent(onChainEvent, "rpc");
+        log.info({ result, fid: onChainEvent.fid, type: onChainEvent.type }, "submitOnChainEvent complete");
         result?.match(
           () => {
             callback(null, onChainEvent);
+          },
+          (err: HubError) => {
+            callback(toServiceError(err));
+          },
+        );
+      },
+      submitUserNameProof: async (call, callback) => {
+        const authResult = await authenticateUser(call.metadata, this.rpcUsers);
+        if (authResult.isErr()) {
+          log.warn({ errMsg: authResult.error.message }, "submitUserNameProof failed");
+          callback(
+            toServiceError(new HubError("unauthenticated", `gRPC authentication failed: ${authResult.error.message}`)),
+          );
+          return;
+        }
+
+        const usernameProof = call.request;
+        const result = await this.hub?.submitUserNameProof(usernameProof, "rpc");
+        log.info({ result, fid: usernameProof.fid }, "submitUserNameProof complete");
+        result?.match(
+          () => {
+            callback(null, usernameProof);
+          },
+          (err: HubError) => {
+            callback(toServiceError(err));
+          },
+        );
+      },
+      pruneMessages: async (call, callback) => {
+        const authResult = await authenticateUser(call.metadata, this.rpcUsers);
+        if (authResult.isErr()) {
+          log.warn({ errMsg: authResult.error.message }, "pruneMessages failed");
+          callback(
+            toServiceError(new HubError("unauthenticated", `gRPC authentication failed: ${authResult.error.message}`)),
+          );
+          return;
+        }
+
+        const fid = call.request.fid;
+        const result = await this.hub?.engine.pruneMessages(fid);
+        log.info({ result, fid }, "pruneMessages complete");
+        result?.match(
+          (numMessagesPruned) => {
+            callback(null, { numMessagesPruned });
           },
           (err: HubError) => {
             callback(toServiceError(err));

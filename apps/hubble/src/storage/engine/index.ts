@@ -301,11 +301,11 @@ class Engine extends TypedEmitter<EngineEvents> {
     }
 
     const limiter = getRateLimiterForTotalMessages(totalUnits * this._totalPruneSize);
-    const isRateLimited = await isRateLimitedByKey(`${fid}`, limiter);
-    if (isRateLimited) {
-      log.warn({ fid }, "rate limit exceeded for FID");
-      return err(new HubError("unavailable", `rate limit exceeded for FID ${fid}`));
-    }
+    // const isRateLimited = await isRateLimitedByKey(`${fid}`, limiter);
+    // if (isRateLimited) {
+    // log.warn({ fid }, "rate limit exceeded for FID");
+    // return err(new HubError("unavailable", `rate limit exceeded for FID ${fid}`));
+    // }
 
     return ok({ i, fid, limiter, message });
   }
@@ -323,15 +323,15 @@ class Engine extends TypedEmitter<EngineEvents> {
         if (result.isErr()) {
           mergeResults.set(i, result);
           // Try to request on chain event if it's missing
-          if (
-            result.error.errCode === "bad_request.no_storage" ||
-            "bad_request.unknown_signer" ||
-            "bad_request.missing_fid"
-          ) {
-            const fid = message.data?.fid ?? 0;
-            // Don't await because we don't want to block hubs from processing new messages.
-            this._l2EventsProvider?.retryEventsForFid(fid);
-          }
+          // if (
+          //   result.error.errCode === "bad_request.no_storage" ||
+          //   "bad_request.unknown_signer" ||
+          //   "bad_request.missing_fid"
+          // ) {
+          // const fid = message.data?.fid ?? 0;
+          // Don't await because we don't want to block hubs from processing new messages.
+          // this._l2EventsProvider?.retryEventsForFid(fid);
+          // }
         } else {
           validatedMessages.push(result.value);
         }
@@ -540,6 +540,7 @@ class Engine extends TypedEmitter<EngineEvents> {
   }
 
   async pruneMessages(fid: number): HubAsyncResult<number> {
+    await this.clearStorageCacheForFid(fid);
     const logPruneResult = (result: HubResult<number[]>, store: string): number => {
       return result.match(
         (ids) => {
@@ -968,6 +969,7 @@ class Engine extends TypedEmitter<EngineEvents> {
       return err(validatedFid.error);
     }
 
+    await this.clearStorageCacheForFid(fid);
     const slot = await this.eventHandler.getCurrentStorageSlotForFid(fid);
 
     if (slot.isErr()) {
@@ -1004,6 +1006,14 @@ class Engine extends TypedEmitter<EngineEvents> {
     });
   }
 
+  async clearStorageCacheForFid(fid: number): HubAsyncResult<void> {
+    const limits = getStoreLimits([]);
+    for (const limit of limits) {
+      await this.eventHandler.clearCachedMessageCount(fid, limit.storeType);
+    }
+    return ok(undefined);
+  }
+
   async getUserNameProof(name: Uint8Array, retries = 1): HubAsyncResult<UserNameProof> {
     const nameString = bytesToUtf8String(name);
     if (nameString.isErr()) {
@@ -1028,17 +1038,17 @@ class Engine extends TypedEmitter<EngineEvents> {
 
       const result = await ResultAsync.fromPromise(this._userDataStore.getUserNameProof(name), (e) => e as HubError);
 
-      if (result.isErr() && result.error.errCode === "not_found" && retries > 0 && this._fNameRegistryEventsProvider) {
-        const rateLimitResult = await ResultAsync.fromPromise(
-          this._fNameRetryRateLimiter.consume(0),
-          () => new HubError("unavailable", "Too many requests to fName server"),
-        );
-        if (rateLimitResult.isErr()) {
-          return err(rateLimitResult.error);
-        }
-        await this._fNameRegistryEventsProvider.retryTransferByName(name);
-        return this.getUserNameProof(name, retries - 1);
-      }
+      // if (result.isErr() && result.error.errCode === "not_found" && retries > 0 && this._fNameRegistryEventsProvider) {
+      //   const rateLimitResult = await ResultAsync.fromPromise(
+      //     this._fNameRetryRateLimiter.consume(0),
+      //     () => new HubError("unavailable", "Too many requests to fName server"),
+      //   );
+      //   if (rateLimitResult.isErr()) {
+      //     return err(rateLimitResult.error);
+      //   }
+      // await this._fNameRegistryEventsProvider.retryTransferByName(name);
+      //   return this.getUserNameProof(name, retries - 1);
+      // }
 
       return result;
     }

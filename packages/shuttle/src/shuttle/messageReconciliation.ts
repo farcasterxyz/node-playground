@@ -134,7 +134,7 @@ export class MessageReconciliation {
     }
 
     // Next, reconcile messages that are in the database but not in the hub
-    const dbMessages = await this.allActiveDbMessagesOfTypeForFid(fid, type, startTimestamp, stopTimestamp);
+    const dbMessages = await allDbMessagesOfTypeForFid(this.db, fid, [type], startTimestamp, stopTimestamp);
     if (dbMessages.isErr()) {
       this.log.error({ startTimestamp, stopTimestamp }, "Invalid time range provided to reconciliation");
       return;
@@ -399,71 +399,62 @@ export class MessageReconciliation {
       });
     }
   }
+}
 
-  private async allActiveDbMessagesOfTypeForFid(
-    fid: number,
-    type: MessageType,
-    startTimestamp?: number,
-    stopTimestamp?: number,
-  ) {
-    let typeSet: MessageType[] = [type];
-    // Add remove types for messages which support them
-    switch (type) {
-      case MessageType.CAST_ADD:
-        typeSet = [...typeSet, MessageType.CAST_REMOVE];
-        break;
-      case MessageType.REACTION_ADD:
-        typeSet = [...typeSet, MessageType.REACTION_REMOVE];
-        break;
-      case MessageType.LINK_ADD:
-        typeSet = [...typeSet, MessageType.LINK_REMOVE, MessageType.LINK_COMPACT_STATE];
-        break;
-      case MessageType.VERIFICATION_ADD_ETH_ADDRESS:
-        typeSet = [...typeSet, MessageType.VERIFICATION_REMOVE];
-        break;
+export async function allDbMessagesOfTypeForFid(
+  db: DB,
+  fid: number,
+  types: MessageType[],
+  startTimestamp?: number,
+  stopTimestamp?: number,
+  limit?: number,
+  offset?: number,
+  includePruned = false,
+  includeDeleted = false,
+  includeRevoked = false,
+) {
+  let startDate;
+  if (startTimestamp) {
+    const startUnixTimestampResult = fromFarcasterTime(startTimestamp);
+    if (startUnixTimestampResult.isErr()) {
+      return err(startUnixTimestampResult.error);
     }
 
-    let startDate;
-    if (startTimestamp) {
-      const startUnixTimestampResult = fromFarcasterTime(startTimestamp);
-      if (startUnixTimestampResult.isErr()) {
-        return err(startUnixTimestampResult.error);
-      }
-
-      startDate = new Date(startUnixTimestampResult.value);
-    }
-
-    let stopDate;
-    if (stopTimestamp) {
-      const stopUnixTimestampResult = fromFarcasterTime(stopTimestamp);
-      if (stopUnixTimestampResult.isErr()) {
-        return err(stopUnixTimestampResult.error);
-      }
-
-      stopDate = new Date(stopUnixTimestampResult.value);
-    }
-
-    const query = this.db
-      .selectFrom("messages")
-      .select([
-        "messages.prunedAt",
-        "messages.revokedAt",
-        "messages.hash",
-        "messages.type",
-        "messages.fid",
-        "messages.raw",
-        "messages.signer",
-      ])
-      .where("messages.fid", "=", fid)
-      .where("messages.type", "in", typeSet)
-      .where("messages.prunedAt", "is", null)
-      .where("messages.revokedAt", "is", null)
-      .where("messages.deletedAt", "is", null);
-    const queryWithStartTime = startDate ? query.where("messages.timestamp", ">=", startDate) : query;
-    const queryWithStopTime = stopDate
-      ? queryWithStartTime.where("messages.timestamp", "<=", stopDate)
-      : queryWithStartTime;
-    const result = await queryWithStopTime.execute();
-    return ok(result);
+    startDate = new Date(startUnixTimestampResult.value);
   }
+
+  let stopDate;
+  if (stopTimestamp) {
+    const stopUnixTimestampResult = fromFarcasterTime(stopTimestamp);
+    if (stopUnixTimestampResult.isErr()) {
+      return err(stopUnixTimestampResult.error);
+    }
+
+    stopDate = new Date(stopUnixTimestampResult.value);
+  }
+
+  const query = db
+    .selectFrom("messages")
+    .select([
+      "messages.prunedAt",
+      "messages.revokedAt",
+      "messages.hash",
+      "messages.type",
+      "messages.fid",
+      "messages.raw",
+      "messages.signer",
+    ])
+    .where("messages.fid", "=", fid)
+    .where("messages.type", "in", types);
+  const queryWithPruned = includePruned ? query : query.where("messages.prunedAt", "is", null);
+  const queryWithRevoked = includeRevoked ? queryWithPruned : queryWithPruned.where("messages.revokedAt", "is", null);
+  const queryWithDeleted = includeDeleted ? queryWithRevoked : queryWithRevoked.where("messages.deletedAt", "is", null);
+  const queryWithStartTime = startDate ? queryWithDeleted.where("messages.timestamp", ">=", startDate) : query;
+  const queryWithStopTime = stopDate
+    ? queryWithStartTime.where("messages.timestamp", "<=", stopDate)
+    : queryWithStartTime;
+  const queryWithLimit = limit ? queryWithStopTime.limit(limit) : queryWithStopTime;
+  const queryWithOffset = offset ? queryWithLimit.offset(offset) : queryWithLimit;
+  const result = await queryWithOffset.execute();
+  return ok(result);
 }

@@ -351,3 +351,11 @@ message StreamFetchResponse {
     StreamError error = 3;
   }
 }
+
+message PruneMessagesRequest {
+  uint64 fid = 1;
+}
+
+message PruneMessagesResponse {
+  uint64 num_messages_pruned = 1;
+}

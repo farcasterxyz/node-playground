@@ -123,6 +123,8 @@ service HubService {
 service AdminService {
   rpc RebuildSyncTrie(Empty) returns (Empty);
   rpc DeleteAllMessagesFromDb(Empty) returns (Empty);
+  rpc PruneMessages(PruneMessagesRequest) returns (PruneMessagesResponse);
   
   rpc SubmitOnChainEvent(OnChainEvent) returns (OnChainEvent);
+  rpc SubmitUserNameProof(UserNameProof) returns (UserNameProof);
 }

@@ -17,7 +17,7 @@ import {
 } from "@farcaster/hub-nodejs";
 import { err, ok } from "neverthrow";
 import RocksDB from "../db/rocksdb.js";
-import { FID_BYTES, OnChainEventPostfix, RootPrefix, UserMessagePostfix } from "../db/types.js";
+import { FID_BYTES, OnChainEventPostfix, RootPrefix, UserMessagePostfix, UserPostfix } from "../db/types.js";
 import { logger } from "../../utils/logger.js";
 import { makeFidKey, makeMessagePrimaryKey, makeTsHash, typeToSetPostfix } from "../db/message.js";
 import { bytesCompare, getFarcasterTime, HubAsyncResult } from "@farcaster/core";
@@ -149,6 +149,12 @@ export class StorageCache {
     } else {
       return ok(this._counts.get(key) ?? 0);
     }
+  }
+
+  async clearMessageCount(fid: number, set: UserMessagePostfix): Promise<void> {
+    this._counts.delete(makeKey(fid, set));
+    this._earliestTsHashes.delete(makeKey(fid, set));
+    await this.getMessageCount(fid, set, true);
   }
 
   async getCurrentStorageSlotForFid(fid: number): HubAsyncResult<StorageSlot> {

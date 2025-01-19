@@ -65,16 +65,23 @@ export class FNameRegistryEventsProvider {
   private client: FNameRegistryClientInterface;
   private hub: HubInterface;
   private lastTransferId = 0;
+  private stopTransferId?: number;
   private resyncEvents: boolean;
   private pollTimeoutId: ReturnType<typeof setTimeout> | undefined;
   private serverSignerAddress: Uint8Array;
   private shouldStop = false;
 
-  constructor(fnameRegistryClient: FNameRegistryClientInterface, hub: HubInterface, resyncEvents = false) {
+  constructor(
+    fnameRegistryClient: FNameRegistryClientInterface,
+    hub: HubInterface,
+    resyncEvents = false,
+    stopTransferId?: number,
+  ) {
     this.client = fnameRegistryClient;
     this.hub = hub;
     this.resyncEvents = resyncEvents;
     this.serverSignerAddress = new Uint8Array();
+    this.stopTransferId = stopTransferId;
   }
 
   public async start() {
@@ -161,6 +168,9 @@ export class FNameRegistryEventsProvider {
 
   private async mergeTransfers(transfers: FNameTransfer[]) {
     for (const transfer of transfers) {
+      if (this.stopTransferId && transfer.id > this.stopTransferId) {
+        break;
+      }
       const serialized = Result.combine([
         utf8StringToBytes(transfer.username),
         hexStringToBytes(transfer.owner),

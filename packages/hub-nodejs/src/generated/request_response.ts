@@ -416,6 +416,14 @@ export interface StreamFetchResponse {
   error?: StreamError | undefined;
 }
 
+export interface PruneMessagesRequest {
+  fid: number;
+}
+
+export interface PruneMessagesResponse {
+  numMessagesPruned: number;
+}
+
 function createBaseEmpty(): Empty {
   return {};
 }
@@ -5078,6 +5086,118 @@ export const StreamFetchResponse = {
     message.error = (object.error !== undefined && object.error !== null)
       ? StreamError.fromPartial(object.error)
       : undefined;
+    return message;
+  },
+};
+
+function createBasePruneMessagesRequest(): PruneMessagesRequest {
+  return { fid: 0 };
+}
+
+export const PruneMessagesRequest = {
+  encode(message: PruneMessagesRequest, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.fid !== 0) {
+      writer.uint32(8).uint64(message.fid);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PruneMessagesRequest {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePruneMessagesRequest();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 8) {
+            break;
+          }
+
+          message.fid = longToNumber(reader.uint64() as Long);
+          continue;
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PruneMessagesRequest {
+    return { fid: isSet(object.fid) ? Number(object.fid) : 0 };
+  },
+
+  toJSON(message: PruneMessagesRequest): unknown {
+    const obj: any = {};
+    message.fid !== undefined && (obj.fid = Math.round(message.fid));
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PruneMessagesRequest>, I>>(base?: I): PruneMessagesRequest {
+    return PruneMessagesRequest.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PruneMessagesRequest>, I>>(object: I): PruneMessagesRequest {
+    const message = createBasePruneMessagesRequest();
+    message.fid = object.fid ?? 0;
+    return message;
+  },
+};
+
+function createBasePruneMessagesResponse(): PruneMessagesResponse {
+  return { numMessagesPruned: 0 };
+}
+
+export const PruneMessagesResponse = {
+  encode(message: PruneMessagesResponse, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.numMessagesPruned !== 0) {
+      writer.uint32(8).uint64(message.numMessagesPruned);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): PruneMessagesResponse {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBasePruneMessagesResponse();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag != 8) {
+            break;
+          }
+
+          message.numMessagesPruned = longToNumber(reader.uint64() as Long);
+          continue;
+      }
+      if ((tag & 7) == 4 || tag == 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): PruneMessagesResponse {
+    return { numMessagesPruned: isSet(object.numMessagesPruned) ? Number(object.numMessagesPruned) : 0 };
+  },
+
+  toJSON(message: PruneMessagesResponse): unknown {
+    const obj: any = {};
+    message.numMessagesPruned !== undefined && (obj.numMessagesPruned = Math.round(message.numMessagesPruned));
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<PruneMessagesResponse>, I>>(base?: I): PruneMessagesResponse {
+    return PruneMessagesResponse.fromPartial(base ?? {});
+  },
+
+  fromPartial<I extends Exact<DeepPartial<PruneMessagesResponse>, I>>(object: I): PruneMessagesResponse {
+    const message = createBasePruneMessagesResponse();
+    message.numMessagesPruned = object.numMessagesPruned ?? 0;
     return message;
   },
 };
