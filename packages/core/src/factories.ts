@@ -830,7 +830,7 @@ export const Factories = {
   EnsName: EnsNameFactory,
   TransactionHash: TransactionHashFactory,
   Ed25519PrivateKey: Ed25519PrivateKeyFactory,
-  Ed25519PPublicKey: Ed25519PublicKeyFactory,
+  Ed25519PublicKey: Ed25519PublicKeyFactory,
   Ed25519Signer: Ed25519SignerFactory,
   Ed25519Signature: Ed25519SignatureFactory,
   Eip712Signer: Eip712SignerFactory,
