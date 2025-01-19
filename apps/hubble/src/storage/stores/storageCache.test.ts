@@ -161,12 +161,12 @@ describe("getMessageCount", () => {
     const fid = Factories.Fid.build();
     const message = await Factories.CastAddMessage.create({ data: { fid } });
     const message2 = await Factories.CastAddMessage.create({ data: { fid } });
-    const message3_differnt_fid = await Factories.CastAddMessage.create();
+    const message3_different_fid = await Factories.CastAddMessage.create();
     await putMessage(db, message);
     await putMessage(db, message2);
-    await putMessage(db, message3_differnt_fid);
+    await putMessage(db, message3_different_fid);
     await expect(cache.getMessageCount(fid, UserPostfix.CastMessage)).resolves.toEqual(ok(2));
-    await expect(cache.getMessageCount(message3_differnt_fid.data.fid, UserPostfix.CastMessage)).resolves.toEqual(
+    await expect(cache.getMessageCount(message3_different_fid.data.fid, UserPostfix.CastMessage)).resolves.toEqual(
       ok(1),
     );
     await expect(cache.getMessageCount(Factories.Fid.build(), UserPostfix.CastMessage)).resolves.toEqual(ok(0));

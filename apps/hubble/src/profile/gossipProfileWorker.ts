@@ -31,7 +31,7 @@ parentPort?.on("message", (data) => {
       await Promise.all(nodes.map((node) => node.stop()));
 
       parentPort?.postMessage({ id, action, response: { peerIds, datas } });
-    } else if (action === ProfileWorkerAction.GetMultiAddres) {
+    } else if (action === ProfileWorkerAction.GetMultiAddress) {
       const response = getMultiAddrs();
       parentPort?.postMessage({ id, action, response });
     } else if (action === ProfileWorkerAction.ConnectToMultiAddr) {
